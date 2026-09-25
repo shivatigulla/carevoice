@@ -1,0 +1,26 @@
+{
+  "name": "carevoice",
+  "private": true,
+  "version": "0.1.0",
+  "description": "CareVoice — multi-agent AI voice operations platform for hospitals",
+  "type": "module",
+  "scripts": {
+    "setup": "node scripts/setup.mjs",
+    "dev": "concurrently -k -n backend,voice,worker,web -c cyan,magenta,yellow,green \"npm:dev:backend\" \"npm:dev:voice\" \"npm:dev:worker\" \"npm:dev:frontend\"",
+    "dev:backend": "node scripts/py.mjs backend -m uvicorn app.main:app --reload --reload-dir app --timeout-graceful-shutdown 3 --host 127.0.0.1 --port 8000",
+    "dev:voice": "node scripts/py.mjs voice -m uvicorn main:app --reload --timeout-graceful-shutdown 3 --host 127.0.0.1 --port 8001",
+    "dev:worker": "node scripts/py.mjs backend worker.py",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "build": "npm --prefix frontend run build",
+    "db:link": "supabase link",
+    "db:push": "supabase db push",
+    "db:seed": "node scripts/py.mjs backend -m app.seed",
+    "demo:reset": "node scripts/pending.mjs 18 demo:reset",
+    "eval": "node scripts/pending.mjs 16 eval",
+    "test": "node scripts/py.mjs backend -m pytest -q"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.5",
+    "supabase": "^2.117.0"
+  }
+}
