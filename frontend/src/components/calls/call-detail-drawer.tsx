@@ -1,8 +1,8 @@
-import { FileAudio, Headphones, ListChecks, MessageSquareText, PhoneIncoming, PhoneOutgoing, Sparkles } from 'lucide-react'
+import { CalendarCheck2, FileAudio, Headphones, ListChecks, MessageSquareText, PhoneIncoming, PhoneOutgoing, Sparkles, Stethoscope } from 'lucide-react'
 import type { ReactNode } from 'react'
 
 import { PersonAvatar } from '@/components/common/person-avatar'
-import { EmptyState, ErrorState, LanguageChip, LiveWaveform, SkeletonCard, StatusPill, TimelineItem } from '@/components/signature'
+import { ActionCard, EmptyState, ErrorState, LanguageChip, LiveWaveform, SkeletonCard, StatusPill, TimelineItem } from '@/components/signature'
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet'
 import { useCallDetail } from '@/hooks/use-calls'
 import { callLabel, callTone } from '@/lib/call-status'
@@ -26,6 +26,9 @@ export function CallDetailDrawer({ callId, onClose }: { callId: string | null; o
   const call = q.data?.call
   const turns = q.data?.turns ?? []
   const events = q.data?.events ?? []
+  const actions = events.filter((e) => e.type === 'action')
+  const offered = events.find((e) => e.type === 'availability')
+  const offeredLabels = Object.entries((offered?.payload?.labels as Record<string, string> | undefined) ?? {})
   const Dir = call?.direction === 'inbound' ? PhoneIncoming : PhoneOutgoing
   const number = call ? (call.direction === 'outbound' ? call.to_number : call.from_number) : null
 
@@ -67,6 +70,14 @@ export function CallDetailDrawer({ callId, onClose }: { callId: string | null; o
             </div>
 
             <div className="space-y-7 px-6 py-6">
+              {actions.length > 0 && (
+                <div className="space-y-2">
+                  {actions.map((a) => (
+                    <ActionCard key={a.id} icon={CalendarCheck2} title={a.label} time={formatTime(a.at)} />
+                  ))}
+                </div>
+              )}
+
               <Section icon={Sparkles} title="AI summary">
                 {call.summary?.summary_en ? (
                   <p className="rounded-lg border border-ai/25 bg-ai/[0.05] px-4 py-3 text-[14px] leading-relaxed">{call.summary.summary_en}</p>
@@ -88,6 +99,19 @@ export function CallDetailDrawer({ callId, onClose }: { callId: string | null; o
                   </p>
                 )}
               </Section>
+
+              {offeredLabels.length > 0 && (
+                <Section icon={Stethoscope} title={`Doctor availability offered · ${offeredLabels.length} slots`}>
+                  <ul className="grid gap-1.5 sm:grid-cols-2">
+                    {offeredLabels.map(([code, label]) => (
+                      <li key={code} className="flex items-start gap-2 rounded-md border bg-background/60 px-2.5 py-1.5 text-[12.5px]">
+                        <code className="mt-px font-mono text-[10.5px] text-ai">{code}</code>
+                        <span>{label}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </Section>
+              )}
 
               <Section icon={MessageSquareText} title="Transcript">
                 {turns.length === 0 ? (

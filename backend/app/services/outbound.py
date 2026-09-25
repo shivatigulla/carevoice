@@ -11,6 +11,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import get_settings
 from app.providers.bolna import DONE, FAILED, LIVE_STATUSES, NO_ANSWER, BolnaProvider
 from app.core.time import IST, utcnow
+from app.services.availability import availability_snapshot
+from app.services.post_call import apply_call_outcome
 from app.services.spoken_time import spoken
 
 PURPOSES = {
@@ -105,12 +107,15 @@ async def start_outbound_call(
             purpose = "booking"
     intent, purpose_text = PURPOSES[purpose]
 
+    snapshot = await availability_snapshot(db, tenant_id, lang, department=appt.department if appt else None)
     user_data = {
         "patient_name": patient.name.split()[0] if patient else "sir/madam",
         "hospital_name": tenant.name,
         "appointment_details": details,
         "language": {"te": "Telugu", "hi": "Hindi", "en": "English"}[lang],
         "call_purpose": purpose_text,
+        "availability": snapshot["text"],
+        "doctor_count": str(snapshot["doctor_count"]),
     }
 
     call_id = (
@@ -138,6 +143,8 @@ async def start_outbound_call(
 
     await db.execute(text("update public.calls set provider_call_id = :x where id = :c"), {"x": execution_id, "c": call_id})
     await _event(db, tenant_id, call_id, "system", "Outbound call requested", {"by": actor, "user_data": user_data})
+    await _event(db, tenant_id, call_id, "availability", f"Offered {len(snapshot['codes'])} slots from {snapshot['doctor_count']} doctors",
+                 {"codes": snapshot["codes"], "labels": snapshot["labels"]})
     await db.commit()
     return {"call_id": str(call_id), "execution_id": execution_id, "patient": patient.name if patient else None}
 
@@ -205,5 +212,12 @@ async def sync_bolna_calls(db: AsyncSession) -> int:
              "cost": json.dumps(ex.get("cost_breakdown") or {}, default=str), "langs": langs, "c": call.id},
         )
         await _event(db, call.tenant_id, call.id, "system", f"Call {final.replace('_', ' ')}", {"bolna_status": st})
+        await db.commit()
+        if final == "completed":
+            try:
+                await apply_call_outcome(db, call.id)
+            except Exception as e:  # noqa: BLE001 — never lose the call record over a booking/LLM error
+                await db.rollback()
+                await _event(db, call.tenant_id, call.id, "system", "Automatic booking failed", {"error": str(e)[:300]})
     await db.commit()
     return len(live)
