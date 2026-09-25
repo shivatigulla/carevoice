@@ -361,6 +361,53 @@ async def _seed_appointments(db: AsyncSession, tenant_id: uuid.UUID) -> int:
     return booked
 
 
+async def _seed_history(db: AsyncSession, tenant_id: uuid.UUID) -> int:
+    """Previous hospital records for the follow-up queue: recent completed visits and missed appointments,
+    plus an appointment tomorrow for patient #1 (the test phone) so reminder calls have real details."""
+    if (await db.execute(text("select count(*) from public.appointments where tenant_id = :t and source = 'seed' "
+                              "and status in ('completed', 'no_show')"), {"t": tenant_id})).scalar_one():
+        return 0
+    rng = random.Random(11)
+    patients = (await db.execute(text("select id, mrn from public.patients where tenant_id = :t order by mrn"), {"t": tenant_id})).all()
+    doctors = (await db.execute(text("select d.id, d.slot_minutes, dp.name from public.doctors d join public.departments dp "
+                                     "on dp.id = d.department_id where d.tenant_id = :t order by d.name"), {"t": tenant_id})).all()
+    today = utcnow().astimezone(IST).date()
+    plan = [(p, "completed", rng.randint(1, 6)) for p in patients[1:9]] + [(p, "no_show", rng.randint(1, 5)) for p in patients[9:14]]
+    made = 0
+    for n, ((pid, _mrn), status, days_ago) in enumerate(plan):
+        doc_id, slot_min, dept = doctors[n % len(doctors)]
+        start = datetime.combine(today - timedelta(days=days_ago), time(10 + n % 6, 0), IST)
+        slot_id = (await db.execute(text(
+            "insert into public.appointment_slots (tenant_id, doctor_id, starts_at, ends_at, status) values "
+            "(:t, :d, :s, :e, 'booked') on conflict (doctor_id, starts_at) do update set status = 'booked' returning id"),
+            {"t": tenant_id, "d": doc_id, "s": start, "e": start + timedelta(minutes=slot_min)})).scalar_one()
+        await db.execute(text(
+            "insert into public.appointments (tenant_id, patient_id, doctor_id, slot_id, starts_at, status, source, reason, "
+            "checked_in_at) values (:t, :p, :d, :s, :at, :st, 'seed', :r, :ci)"),
+            {"t": tenant_id, "p": pid, "d": doc_id, "s": slot_id, "at": start, "st": status,
+             "r": rng.choice(VISIT_REASONS[dept]), "ci": start if status == "completed" else None})
+        made += 1
+    # Patient #1 (SEED_TEST_PHONE): an appointment tomorrow morning with Dr. Ramesh Reddy.
+    p1 = patients[0][0]
+    has = (await db.execute(text("select 1 from public.appointments where patient_id = :p and starts_at > now() "
+                                 "and status in ('booked','confirmed')"), {"p": p1})).first()
+    if not has:
+        ramesh = (await db.execute(text("select id from public.doctors where tenant_id = :t and name = 'Dr. Ramesh Reddy'"),
+                                   {"t": tenant_id})).scalar_one()
+        tmr = datetime.combine(today + timedelta(days=1), time(0, 0), IST)
+        slot = (await db.execute(text(
+            "select id, starts_at from public.appointment_slots where doctor_id = :d and status = 'open' and starts_at >= :a "
+            "and starts_at < :b order by starts_at offset 4 limit 1"), {"d": ramesh, "a": tmr, "b": tmr + timedelta(days=1)})).first()
+        if slot:
+            await db.execute(text("update public.appointment_slots set status = 'booked' where id = :id"), {"id": slot.id})
+            await db.execute(text(
+                "insert into public.appointments (tenant_id, patient_id, doctor_id, slot_id, starts_at, status, source, reason) "
+                "values (:t, :p, :d, :s, :at, 'booked', 'seed', 'Fever and body pains')"),
+                {"t": tenant_id, "p": p1, "d": ramesh, "s": slot.id, "at": slot.starts_at})
+            made += 1
+    return made
+
+
 async def _seed_admin(db: AsyncSession, tenant_id: uuid.UUID, email: str, password: str) -> None:
     admin = SupabaseAdmin()
     user = await admin.find_user_by_email(email)
@@ -411,6 +458,10 @@ async def seed() -> None:
         booked = await _seed_appointments(db, tenant_id)
         await db.commit()
         log.info("appointments: %d new", booked)
+
+        history = await _seed_history(db, tenant_id)
+        await db.commit()
+        log.info("previous visits / missed appointments: %d new", history)
 
         await _seed_admin(db, tenant_id, s.demo_admin_email, s.demo_admin_password)
         await db.commit()

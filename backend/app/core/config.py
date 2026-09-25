@@ -4,7 +4,9 @@ from datetime import date
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import Field, computed_field
+import re
+
+from pydantic import Field, computed_field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -66,6 +68,13 @@ class Settings(BaseSettings):
     price_llm_output_inr_per_1m_tokens: float = 0.0
 
     tz: str = "Asia/Kolkata"
+
+    @field_validator("bolna_agent_id")
+    @classmethod
+    def _agent_id_from_url(cls, v: str) -> str:
+        """Accept the agent's page URL as well as the bare ID: keep only the UUID."""
+        m = re.search(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", v or "", re.I)
+        return m.group(0) if m else (v or "").strip()
 
     @computed_field  # type: ignore[prop-decorator]
     @property

@@ -10,6 +10,7 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import { queryClient } from '@/lib/query-client'
 import AgentsPage from '@/pages/agents'
 import AppointmentsPage from '@/pages/appointments'
+import CallRecordsPage from '@/pages/call-records'
 import DashboardPage from '@/pages/dashboard'
 import DoctorsPage from '@/pages/doctors'
 import LoginPage from '@/pages/login'
@@ -60,7 +61,7 @@ export default function App() {
                     <Route path="follow-ups" element={<SectionPage section="followUps" />} />
                     <Route path="tasks" element={<SectionPage section="tasks" />} />
                     <Route path="escalations" element={<SectionPage section="escalations" />} />
-                    <Route path="call-records" element={<SectionPage section="callRecords" />} />
+                    <Route path="call-records" element={<CallRecordsPage />} />
                     <Route path="analytics" element={<SectionPage section="analytics" />} />
                     <Route path="knowledge" element={<SectionPage section="knowledge" />} />
                     <Route path="workflows" element={<SectionPage section="workflows" />} />

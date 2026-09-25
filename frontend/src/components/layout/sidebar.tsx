@@ -96,7 +96,7 @@ export function Sidebar({ collapsed, onToggle, onNavigate, className }: SidebarP
                 item={item}
                 collapsed={collapsed}
                 onNavigate={onNavigate}
-                badge={item.path === '/live-calls' ? liveCount : undefined}
+                badge={item.path === '/' ? liveCount : undefined}
               />
             ))}
           </div>

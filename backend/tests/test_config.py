@@ -30,3 +30,8 @@ def test_defaults_match_spec() -> None:
     assert s.sarvam_stt_model == "saaras:v3"
     assert s.sarvam_tts_model == "bulbul:v3"
     assert s.tz == "Asia/Kolkata"
+
+
+def test_bolna_agent_id_accepts_page_url() -> None:
+    url = "https://platform.bolna.ai/agents/aaaaaaaa-1111-4222-8333-bbbbbbbbbbbb?tab=prompt"
+    assert Settings(bolna_agent_id=url).bolna_agent_id == "aaaaaaaa-1111-4222-8333-bbbbbbbbbbbb"

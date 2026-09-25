@@ -1,7 +1,6 @@
 import {
   BookOpen,
   ChartSpline,
-  FileAudio,
   ListChecks,
   PhoneCall,
   PhoneForwarded,
@@ -45,12 +44,6 @@ const SECTIONS = {
     description: 'Calls agents handed to a human — emergencies, complaints and questions they must not answer.',
     icon: Siren,
     empty: { title: 'No escalations', description: 'Escalated calls appear here instantly, ranked by severity, with the transcript attached.' },
-  },
-  callRecords: {
-    title: 'Call Records',
-    description: 'Searchable history of every call with recordings, transcripts and AI summaries.',
-    icon: FileAudio,
-    empty: { title: 'No calls recorded yet', description: 'Completed calls are stored here with their recording, transcript and summary.' },
   },
   analytics: {
     title: 'Analytics',

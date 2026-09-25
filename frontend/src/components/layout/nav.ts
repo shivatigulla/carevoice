@@ -1,20 +1,4 @@
-import {
-  BookOpen,
-  Bot,
-  CalendarDays,
-  ChartSpline,
-  FileAudio,
-  LayoutDashboard,
-  ListChecks,
-  PhoneCall,
-  PhoneForwarded,
-  Settings,
-  Siren,
-  Stethoscope,
-  Users,
-  Workflow,
-  type LucideIcon,
-} from 'lucide-react'
+import { Bot, CalendarDays, FileAudio, Radio, Stethoscope, Users, type LucideIcon } from 'lucide-react'
 
 export interface NavItem {
   label: string
@@ -31,38 +15,23 @@ export interface NavSection {
 
 export const NAV_SECTIONS: NavSection[] = [
   {
-    label: 'Operations',
+    label: 'Calls',
     items: [
-      { label: 'Dashboard', path: '/', icon: LayoutDashboard, keywords: ['home', 'overview'] },
-      { label: 'Live Calls', path: '/live-calls', icon: PhoneCall, keywords: ['active', 'monitor'] },
-      { label: 'Agents', path: '/agents', icon: Bot, keywords: ['ai', 'workforce', 'bots'] },
-      { label: 'Escalations', path: '/escalations', icon: Siren, keywords: ['alerts', 'urgent'] },
+      { label: 'Call Center', path: '/', icon: Radio, keywords: ['dashboard', 'home', 'follow-up', 'queue'] },
+      { label: 'Call Records', path: '/call-records', icon: FileAudio, keywords: ['history', 'recordings', 'transcripts', 'summary'] },
     ],
   },
   {
-    label: 'Care',
+    label: 'Hospital',
     items: [
       { label: 'Patients', path: '/patients', icon: Users },
+      { label: 'Appointments', path: '/appointments', icon: CalendarDays, keywords: ['booking', 'schedule', 'calendar'] },
       { label: 'Doctors', path: '/doctors', icon: Stethoscope, keywords: ['availability', 'departments'] },
-      { label: 'Appointments', path: '/appointments', icon: CalendarDays, keywords: ['booking', 'schedule'] },
-      { label: 'Follow-ups', path: '/follow-ups', icon: PhoneForwarded, keywords: ['outbound', 'callbacks'] },
-      { label: 'Tasks', path: '/tasks', icon: ListChecks, keywords: ['todo'] },
     ],
   },
   {
-    label: 'Insights',
-    items: [
-      { label: 'Call Records', path: '/call-records', icon: FileAudio, keywords: ['history', 'recordings', 'transcripts'] },
-      { label: 'Analytics', path: '/analytics', icon: ChartSpline, keywords: ['reports', 'metrics'] },
-    ],
-  },
-  {
-    label: 'Configure',
-    items: [
-      { label: 'Knowledge', path: '/knowledge', icon: BookOpen, keywords: ['faq', 'documents'] },
-      { label: 'Workflows', path: '/workflows', icon: Workflow, keywords: ['automation', 'flows'] },
-      { label: 'Settings', path: '/settings', icon: Settings, keywords: ['preferences', 'hospital'] },
-    ],
+    label: 'AI',
+    items: [{ label: 'Agents', path: '/agents', icon: Bot, keywords: ['ai', 'workforce'] }],
   },
 ]
 

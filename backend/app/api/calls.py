@@ -1,7 +1,7 @@
 """Staff call actions: place a real outbound call (Bolna)."""
 
 import uuid
-from typing import Any
+from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, model_validator
@@ -19,6 +19,8 @@ router = APIRouter(prefix="/api/calls", tags=["calls"])
 class OutboundIn(BaseModel):
     phone: str | None = None
     patient_id: uuid.UUID | None = None
+    appointment_id: uuid.UUID | None = None
+    purpose: Literal["reminder", "missed", "post_visit", "booking"] = "reminder"
 
     @model_validator(mode="after")
     def one_of(self) -> "OutboundIn":
@@ -50,7 +52,10 @@ async def outbound(
         if not phone:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "patient not found")
     try:
-        return await start_outbound_call(session, tenant_id=staff.tenant_id, phone=phone, patient_id=body.patient_id, actor=str(staff.user_id))
+        return await start_outbound_call(
+            session, tenant_id=staff.tenant_id, phone=phone, patient_id=body.patient_id, actor=str(staff.user_id),
+            purpose=body.purpose, appointment_id=body.appointment_id,
+        )
     except BolnaError as e:
         raise HTTPException(status.HTTP_502_BAD_GATEWAY, str(e)) from e
     except RuntimeError as e:
