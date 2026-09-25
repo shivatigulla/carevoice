@@ -18,6 +18,7 @@ from app.db.session import DatabaseNotConfigured, dispose_engine, get_sessionmak
 from sqlalchemy import text
 
 from app.jobs.queue import release_stale_jobs, run_due_jobs
+from app.services.outbound import sync_bolna_calls
 
 configure_logging()
 logging.getLogger("apscheduler").setLevel(logging.WARNING)  # it logs every tick at INFO
@@ -73,11 +74,20 @@ async def housekeeping() -> None:
         pass
 
 
+async def sync_outbound() -> None:
+    try:
+        async with get_sessionmaker()() as db:
+            await sync_bolna_calls(db)
+    except Exception as e:  # noqa: BLE001 — Bolna/network hiccups must not stop the worker
+        _warn_once("bolna", "Bolna sync failed: %s: %s", type(e).__name__, e)
+
+
 async def main() -> None:
     scheduler = AsyncIOScheduler(timezone="UTC")
     scheduler.add_job(drain_job_queue, "interval", seconds=5, id="drain_job_queue", max_instances=1, coalesce=True)
     scheduler.add_job(reap_stale_jobs, "interval", minutes=2, id="reap_stale_jobs", max_instances=1, coalesce=True)
     scheduler.add_job(housekeeping, "interval", seconds=30, id="housekeeping", max_instances=1, coalesce=True)
+    scheduler.add_job(sync_outbound, "interval", seconds=4, id="sync_outbound", max_instances=1, coalesce=True)
     scheduler.start()
     log.info("worker %s started (%d scheduled jobs)", WORKER_ID, len(scheduler.get_jobs()))
 

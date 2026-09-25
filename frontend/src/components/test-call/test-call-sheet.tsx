@@ -1,17 +1,40 @@
 import { PipecatClient } from '@pipecat-ai/client-js'
 import { SmallWebRTCTransport } from '@pipecat-ai/small-webrtc-transport'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Loader2, Mic, PhoneOff } from 'lucide-react'
+import { Loader2, Mic, PhoneCall, PhoneOff, Smartphone } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { AgentAvatar, LanguageChip, LiveWaveform, StatusPill, ToolCallCard } from '@/components/signature'
+import { Segmented } from '@/components/common/segmented'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet'
+import { apiFetch, ApiError } from '@/lib/api'
 import { env } from '@/lib/env'
 import { requireSupabase, supabase } from '@/lib/supabase'
 import { formatDuration } from '@/lib/time'
 import { cn } from '@/lib/utils'
 
 type Phase = 'idle' | 'connecting' | 'live' | 'ended' | 'error'
+type Mode = 'browser' | 'phone'
+
+interface PhoneCallState {
+  status: string
+  current_stage: string | null
+  duration_sec: number | null
+  outcome: string | null
+}
+
+function apiErrorText(e: unknown) {
+  if (e instanceof ApiError) {
+    try {
+      return String((JSON.parse(e.message) as { detail?: unknown }).detail ?? e.message)
+    } catch {
+      return e.message
+    }
+  }
+  return e instanceof Error ? e.message : 'Something went wrong'
+}
 
 interface Turn {
   id: string
@@ -47,6 +70,10 @@ async function findCallId(since: string): Promise<string | null> {
 }
 
 export function TestCallSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+  const [mode, setMode] = useState<Mode>('phone')
+  const [phone, setPhone] = useState('')
+  const [dialing, setDialing] = useState(false)
+  const [phoneCall, setPhoneCall] = useState<PhoneCallState | null>(null)
   const [phase, setPhase] = useState<Phase>('idle')
   const [error, setError] = useState<string | null>(null)
   const [callId, setCallId] = useState<string | null>(null)
@@ -103,6 +130,35 @@ export function TestCallSheet({ open, onOpenChange }: { open: boolean; onOpenCha
       sb.removeChannel(channel)
     }
   }, [callId])
+
+  // Phone mode: follow the call row (status/stage) live.
+  useEffect(() => {
+    if (mode !== 'phone' || !callId || !supabase) return
+    const sb = supabase
+    sb.from('calls').select('status, current_stage, duration_sec, outcome').eq('id', callId).single().then(({ data }) => data && setPhoneCall(data as PhoneCallState))
+    const ch = sb
+      .channel(`phone-call:${callId}`)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'calls', filter: `id=eq.${callId}` }, (p) => setPhoneCall(p.new as PhoneCallState))
+      .subscribe()
+    return () => {
+      sb.removeChannel(ch)
+    }
+  }, [mode, callId])
+
+  const dial = useCallback(async () => {
+    setError(null)
+    setFeed([])
+    setPhoneCall(null)
+    setDialing(true)
+    try {
+      const r = await apiFetch<{ call_id: string; patient: string | null }>('/api/calls/outbound', { method: 'POST', body: JSON.stringify({ phone }) })
+      setCallId(r.call_id)
+    } catch (e) {
+      setError(apiErrorText(e))
+    } finally {
+      setDialing(false)
+    }
+  }, [phone])
 
   const stop = useCallback(async () => {
     await client.current?.disconnect().catch(() => undefined)
@@ -174,11 +230,70 @@ export function TestCallSheet({ open, onOpenChange }: { open: boolean; onOpenCha
             <AgentAvatar agentKey="appointment" active={live} />
             <div className="min-w-0">
               <SheetTitle className="font-heading text-lg font-bold">Test Call</SheetTitle>
-              <SheetDescription className="text-xs">Talk to the Appointment agent in Telugu, Hindi or English — as your test patient.</SheetDescription>
+              <SheetDescription className="text-xs">Call a real phone, or talk to the agent in your browser — Telugu, Hindi or English.</SheetDescription>
             </div>
           </div>
         </div>
 
+        <div className="flex justify-center border-b bg-card px-6 pt-4">
+          <Segmented
+            label="Call type"
+            value={mode}
+            onChange={(m) => {
+              if (live || busy) return
+              setMode(m)
+              setFeed([])
+              setCallId(null)
+              setPhoneCall(null)
+              setError(null)
+            }}
+            options={[
+              { value: 'phone', label: <><Smartphone className="size-3.5" /> Phone call</> },
+              { value: 'browser', label: <><Mic className="size-3.5" /> Browser</> },
+            ]}
+          />
+        </div>
+
+        {mode === 'phone' ? (
+          <div className="space-y-3 border-b bg-card px-6 py-5">
+            <form
+              className="flex gap-2"
+              onSubmit={(e) => {
+                e.preventDefault()
+                void dial()
+              }}
+            >
+              <Input
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="+91 98765 43210"
+                inputMode="tel"
+                aria-label="Phone number to call"
+                className="h-10 font-mono"
+              />
+              <Button type="submit" className="h-10" disabled={dialing || phone.replace(/\D/g, '').length < 10 || (phoneCall?.status === 'live')}>
+                {dialing ? <Loader2 className="animate-spin" /> : <PhoneCall />} Call now
+              </Button>
+            </form>
+            <p className="text-xs text-muted-foreground">
+              The Follow-up agent calls this number via Bolna and talks about the patient's next appointment. A registered patient's number gets a personalised call.
+            </p>
+            {error && <p className="text-sm text-critical">{error}</p>}
+            {phoneCall && (
+              <div className="flex items-center gap-3 rounded-md bg-muted/60 px-3 py-2">
+                <StatusPill
+                  tone={phoneCall.status === 'live' ? 'live' : phoneCall.status === 'completed' ? 'ok' : 'critical'}
+                  pulse={phoneCall.status === 'live'}
+                >
+                  {phoneCall.status === 'live' ? phoneCall.current_stage ?? 'dialing' : phoneCall.status.replace('_', ' ')}
+                </StatusPill>
+                {phoneCall.status === 'live' && <LiveWaveform bars={6} />}
+                {phoneCall.duration_sec !== null && <span className="font-mono text-xs text-muted-foreground tabular">{formatDuration(phoneCall.duration_sec)}</span>}
+                {phoneCall.outcome && <span className="ml-auto text-xs text-muted-foreground">{phoneCall.outcome}</span>}
+              </div>
+            )}
+          </div>
+        ) : (
         <div className="flex flex-col items-center gap-4 border-b bg-card px-6 py-6">
           <button
             type="button"
@@ -212,11 +327,18 @@ export function TestCallSheet({ open, onOpenChange }: { open: boolean; onOpenCha
             )}
           </div>
         </div>
+        )}
 
         <div className="flex-1 space-y-3 overflow-y-auto px-5 py-5">
           {feed.length === 0 && (
             <p className="py-10 text-center text-sm text-muted-foreground">
-              {live ? 'Transcript appears here as you talk.' : 'Try: "నాకు రేపు Dr. Ramesh తో appointment కావాలి"'}
+              {mode === 'phone'
+                ? phoneCall?.status === 'live'
+                  ? 'Call in progress — the full transcript appears here when it ends.'
+                  : 'Enter a number and press Call now.'
+                : live
+                  ? 'Transcript appears here as you talk.'
+                  : 'Try: "నాకు రేపు Dr. Ramesh తో appointment కావాలి"'}
             </p>
           )}
           <AnimatePresence initial={false}>

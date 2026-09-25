@@ -40,6 +40,10 @@ class Settings(BaseSettings):
     twilio_account_sid: str = ""
     twilio_auth_token: str = ""
     twilio_number: str = ""
+    # Bolna hosted voice agents (outbound calls)
+    bolna_api_key: str = ""
+    bolna_agent_id: str = ""
+    bolna_from_number: str = ""
 
     # Service wiring
     public_base_url: str = ""

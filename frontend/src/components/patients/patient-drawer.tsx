@@ -1,9 +1,13 @@
-import { CalendarDays, HeartHandshake, MessageSquareText, PhoneIncoming, PhoneOff, PhoneOutgoing, UserX } from 'lucide-react'
+import { useMutation } from '@tanstack/react-query'
+import { CalendarDays, HeartHandshake, Loader2, MessageSquareText, PhoneCall, PhoneIncoming, PhoneOff, PhoneOutgoing, UserX } from 'lucide-react'
+import { toast } from 'sonner'
 import { useState, type ReactNode } from 'react'
 
 import { PersonAvatar } from '@/components/common/person-avatar'
 import { EmptyState, ErrorState, LanguageChip, SkeletonCard, StatusPill, TimelineItem } from '@/components/signature'
+import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet'
+import { apiFetch, ApiError } from '@/lib/api'
 import { usePatientAppointments, usePatientCalls } from '@/hooks/use-data'
 import { useRealtimeInvalidate } from '@/hooks/use-realtime'
 import { AGENT_LABEL } from '@/lib/agents'
@@ -106,6 +110,30 @@ function Timeline({ patientId }: { patientId: string }) {
   )
 }
 
+function CallNowButton({ patient }: { patient: PatientRow }) {
+  const m = useMutation({
+    mutationFn: () => apiFetch('/api/calls/outbound', { method: 'POST', body: JSON.stringify({ patient_id: patient.id }) }),
+    onSuccess: () => toast.success(`Calling ${patient.name}…`),
+    onError: (e) => {
+      let msg = e instanceof Error ? e.message : 'Call failed'
+      if (e instanceof ApiError) {
+        try {
+          msg = String((JSON.parse(e.message) as { detail?: unknown }).detail ?? msg)
+        } catch {
+          /* keep raw */
+        }
+      }
+      toast.error(`Couldn't place the call: ${msg}`)
+    },
+  })
+  const blocked = patient.opt_out || patient.dnd
+  return (
+    <Button size="sm" onClick={() => m.mutate()} disabled={m.isPending || blocked} title={blocked ? 'Patient opted out / DND' : undefined}>
+      {m.isPending ? <Loader2 className="animate-spin" /> : <PhoneCall />} Call now
+    </Button>
+  )
+}
+
 export function PatientDrawer({ patient, onClose }: { patient: PatientRow | null; onClose: () => void }) {
   useRealtimeInvalidate('appointments', [['appointments', 'patient']])
   useRealtimeInvalidate('calls', [['calls', 'patient']])
@@ -126,7 +154,7 @@ export function PatientDrawer({ patient, onClose }: { patient: PatientRow | null
                     {age !== null && <span>{age} years</span>}
                     {patient.gender && <span className="capitalize">{patient.gender}</span>}
                   </SheetDescription>
-                  <div className="flex flex-wrap gap-1.5 pt-0.5">
+                  <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
                     <LanguageChip lang={patient.preferred_language} showNative />
                     {patient.opt_out && (
                       <StatusPill tone="critical">
@@ -144,6 +172,10 @@ export function PatientDrawer({ patient, onClose }: { patient: PatientRow | null
             </div>
 
             <div className="space-y-7 px-6 py-6">
+              <div className="-mt-2">
+                <CallNowButton patient={patient} />
+              </div>
+
               <Section title="Profile">
                 <dl className="grid grid-cols-2 gap-x-6 gap-y-3">
                   <Field label="Phone">
