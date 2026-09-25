@@ -7,6 +7,7 @@ import { Panel } from '@/components/dashboard/panel'
 import { AgentAvatar, EmptyState, ErrorState, LanguageChip, LiveWaveform, SkeletonCard, StatusPill } from '@/components/signature'
 import { Button } from '@/components/ui/button'
 import { useLiveCalls } from '@/hooks/use-data'
+import { AGENT_LABEL } from '@/lib/agents'
 import { formatDuration } from '@/lib/time'
 import type { LiveCallRow } from '@/lib/types'
 
@@ -20,8 +21,7 @@ function useNow(intervalMs = 1000) {
 }
 
 function CallRow({ call, now }: { call: LiveCallRow; now: number }) {
-  const since = call.answered_at ?? call.started_at ?? call.created_at
-  const ringing = call.status === 'ringing'
+  const since = call.started_at
   const Direction = call.direction === 'inbound' ? ArrowDownLeft : ArrowUpRight
   const counterpart = call.direction === 'inbound' ? call.from_number : call.to_number
 
@@ -34,27 +34,24 @@ function CallRow({ call, now }: { call: LiveCallRow; now: number }) {
       transition={{ duration: 0.2 }}
       className="flex items-center gap-3 px-5 py-3"
     >
-      <AgentAvatar agentKey={call.agent?.key ?? 'reception'} active={!ringing} size="sm" />
+      <AgentAvatar agentKey={call.agent_type ?? 'reception'} active size="sm" />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <span className="truncate text-sm font-medium">{call.patient?.full_name ?? counterpart ?? 'Unknown caller'}</span>
-          {call.language && <LanguageChip lang={call.language} />}
+          <span className="truncate text-sm font-medium">{call.patient?.name ?? counterpart ?? 'Unknown caller'}</span>
+          {call.languages.map((l) => (
+            <LanguageChip key={l} lang={l} />
+          ))}
         </div>
         <div className="flex items-center gap-1 text-xs text-muted-foreground">
           <Direction className="size-3" />
           <span className="truncate">
-            {call.agent?.name ?? 'Unassigned'} · {call.direction}
+            {call.agent_type ? AGENT_LABEL[call.agent_type] : 'Unassigned'} · {call.direction}
+            {call.current_stage ? ` · ${call.current_stage}` : ''}
           </span>
         </div>
       </div>
       <div className="flex shrink-0 flex-col items-end gap-1">
-        {ringing ? (
-          <StatusPill tone="warning" pulse>
-            Ringing
-          </StatusPill>
-        ) : (
-          <LiveWaveform bars={5} className="h-3.5" />
-        )}
+        <LiveWaveform bars={5} className="h-3.5" />
         <span className="font-mono text-xs text-muted-foreground tabular">{formatDuration((now - new Date(since).getTime()) / 1000)}</span>
       </div>
     </motion.li>

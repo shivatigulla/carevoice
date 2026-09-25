@@ -18,14 +18,12 @@ function AgentCard({ agent, activeCalls, index }: { agent: AgentRow; activeCalls
       className="group flex flex-col gap-3 rounded-lg border bg-card p-4 transition-shadow hover:shadow-lift"
     >
       <div className="flex items-start gap-3">
-        <AgentAvatar agentKey={agent.key} active={onCall} />
+        <AgentAvatar agentKey={agent.type} active={onCall} />
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
-            <h3 className="truncate font-heading text-sm font-semibold">{agent.name}</h3>
-            {agent.status !== 'active' ? (
-              <StatusPill tone="neutral" className="capitalize">
-                {agent.status}
-              </StatusPill>
+            <h3 className="truncate font-heading text-sm font-semibold">{agent.display_name}</h3>
+            {!agent.enabled ? (
+              <StatusPill tone="neutral">Paused</StatusPill>
             ) : onCall ? (
               <StatusPill tone="live" pulse>
                 On {activeCalls} call{activeCalls > 1 ? 's' : ''}
@@ -34,12 +32,12 @@ function AgentCard({ agent, activeCalls, index }: { agent: AgentRow; activeCalls
               <StatusPill tone="ok">Ready</StatusPill>
             )}
           </div>
-          <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">{agent.description}</p>
+          <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">{agent.config.description}</p>
         </div>
       </div>
       <div className="mt-auto flex items-center justify-between">
         <div className="flex gap-1">
-          {agent.languages.map((l) => (
+          {(agent.config.languages ?? []).map((l) => (
             <LanguageChip key={l} lang={l} />
           ))}
         </div>
@@ -55,10 +53,10 @@ export function AiWorkforce() {
 
   const callsByAgent = new Map<string, number>()
   for (const c of live.data ?? []) {
-    if (c.agent_id) callsByAgent.set(c.agent_id, (callsByAgent.get(c.agent_id) ?? 0) + 1)
+    if (c.agent_type) callsByAgent.set(c.agent_type, (callsByAgent.get(c.agent_type) ?? 0) + 1)
   }
 
-  const onCallCount = agents.data?.filter((a) => callsByAgent.has(a.id)).length ?? 0
+  const onCallCount = agents.data?.filter((a) => callsByAgent.has(a.type)).length ?? 0
 
   return (
     <Panel
@@ -72,7 +70,7 @@ export function AiWorkforce() {
       bodyClassName="p-4"
     >
       {agents.isLoading ? (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {Array.from({ length: 6 }, (_, i) => (
             <SkeletonCard key={i} lines={2} />
           ))}
@@ -87,9 +85,9 @@ export function AiWorkforce() {
           description="Run npm run db:seed to create the Reception, Appointment, Follow-up, Pre-Visit, Caring and Console agents."
         />
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {agents.data.map((a, i) => (
-            <AgentCard key={a.id} agent={a} index={i} activeCalls={callsByAgent.get(a.id) ?? 0} />
+            <AgentCard key={a.id} agent={a} index={i} activeCalls={callsByAgent.get(a.type) ?? 0} />
           ))}
         </div>
       )}

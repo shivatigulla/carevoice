@@ -1,7 +1,5 @@
 import {
   BookOpen,
-  Bot,
-  CalendarDays,
   ChartSpline,
   FileAudio,
   ListChecks,
@@ -9,7 +7,6 @@ import {
   PhoneForwarded,
   Settings,
   Siren,
-  Users,
   Workflow,
   type LucideIcon,
 } from 'lucide-react'
@@ -30,24 +27,6 @@ const SECTIONS = {
     description: 'Every call your agents are on right now, with live transcripts in Telugu, Hindi and English.',
     icon: PhoneCall,
     empty: { title: 'No live calls', description: 'When an agent answers or dials out, the call and its transcript stream in here in real time.' },
-  },
-  agents: {
-    title: 'Agents',
-    description: 'Configure each voice agent’s prompt, allowed tools, languages and call flow.',
-    icon: Bot,
-    empty: { title: 'Agent configuration is on its way', description: 'For now, agents are seeded with npm run db:seed and shown on the Dashboard’s AI Workforce.' },
-  },
-  patients: {
-    title: 'Patients',
-    description: 'Everyone who has spoken with your hospital, with their preferred language and history.',
-    icon: Users,
-    empty: { title: 'No patients yet', description: 'Patients are added when they call in, book through an agent, or are imported by staff.' },
-  },
-  appointments: {
-    title: 'Appointments',
-    description: 'Bookings made by agents and staff, checked against real doctor availability.',
-    icon: CalendarDays,
-    empty: { title: 'No appointments yet', description: 'Appointments booked by the Appointment agent will appear here with the call that created them.' },
   },
   followUps: {
     title: 'Follow-ups',

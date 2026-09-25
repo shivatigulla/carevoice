@@ -7,9 +7,9 @@ import { Button } from '@/components/ui/button'
 import { queryKeys, useOpenEscalations } from '@/hooks/use-data'
 import { useRealtimeInvalidate } from '@/hooks/use-realtime'
 import { formatRelative } from '@/lib/time'
-import type { Severity } from '@/lib/types'
+import type { Priority } from '@/lib/types'
 
-const SEVERITY: Record<Severity, { tone: 'critical' | 'warning' | 'neutral'; label: string }> = {
+const PRIORITY: Record<Priority, { tone: 'critical' | 'warning' | 'neutral'; label: string }> = {
   critical: { tone: 'critical', label: 'Critical' },
   high: { tone: 'critical', label: 'High' },
   medium: { tone: 'warning', label: 'Medium' },
@@ -45,14 +45,14 @@ export function EscalationsPanel({ className }: { className?: string }) {
       ) : (
         <ol className="p-5">
           {esc.data!.map((e, i) => {
-            const sev = SEVERITY[e.severity]
+            const sev = PRIORITY[e.priority]
             return (
               <TimelineItem
                 key={e.id}
-                icon={e.severity === 'critical' || e.severity === 'high' ? Siren : AlertTriangle}
+                icon={e.priority === 'critical' || e.priority === 'high' ? Siren : AlertTriangle}
                 tone={sev.tone}
                 last={i === count - 1}
-                title={e.patient?.full_name ?? 'Unknown patient'}
+                title={e.patient?.name ?? 'Unknown patient'}
                 time={formatRelative(e.created_at)}
                 description={e.reason}
               >
@@ -60,7 +60,7 @@ export function EscalationsPanel({ className }: { className?: string }) {
                   <StatusPill tone={sev.tone} dot={false}>
                     {sev.label}
                   </StatusPill>
-                  {e.status === 'acknowledged' && <StatusPill tone="ok">Acknowledged</StatusPill>}
+                  {e.status === 'in_progress' && <StatusPill tone="ok">In progress</StatusPill>}
                 </div>
               </TimelineItem>
             )

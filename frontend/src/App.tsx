@@ -8,9 +8,13 @@ import { BrandMark } from '@/components/layout/brand'
 import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { queryClient } from '@/lib/query-client'
+import AgentsPage from '@/pages/agents'
+import AppointmentsPage from '@/pages/appointments'
 import DashboardPage from '@/pages/dashboard'
+import DoctorsPage from '@/pages/doctors'
 import LoginPage from '@/pages/login'
 import NotFoundPage from '@/pages/not-found'
+import PatientsPage from '@/pages/patients'
 import { SectionPage } from '@/pages/section-page'
 import { useAuth } from '@/providers/auth-context'
 import { AuthProvider } from '@/providers/auth-provider'
@@ -49,9 +53,10 @@ export default function App() {
                   <Route element={<AppShell />}>
                     <Route index element={<DashboardPage />} />
                     <Route path="live-calls" element={<SectionPage section="liveCalls" />} />
-                    <Route path="agents" element={<SectionPage section="agents" />} />
-                    <Route path="patients" element={<SectionPage section="patients" />} />
-                    <Route path="appointments" element={<SectionPage section="appointments" />} />
+                    <Route path="agents" element={<AgentsPage />} />
+                    <Route path="patients" element={<PatientsPage />} />
+                    <Route path="doctors" element={<DoctorsPage />} />
+                    <Route path="appointments" element={<AppointmentsPage />} />
                     <Route path="follow-ups" element={<SectionPage section="followUps" />} />
                     <Route path="tasks" element={<SectionPage section="tasks" />} />
                     <Route path="escalations" element={<SectionPage section="escalations" />} />

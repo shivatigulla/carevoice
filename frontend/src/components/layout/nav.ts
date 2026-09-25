@@ -10,6 +10,7 @@ import {
   PhoneForwarded,
   Settings,
   Siren,
+  Stethoscope,
   Users,
   Workflow,
   type LucideIcon,
@@ -42,6 +43,7 @@ export const NAV_SECTIONS: NavSection[] = [
     label: 'Care',
     items: [
       { label: 'Patients', path: '/patients', icon: Users },
+      { label: 'Doctors', path: '/doctors', icon: Stethoscope, keywords: ['availability', 'departments'] },
       { label: 'Appointments', path: '/appointments', icon: CalendarDays, keywords: ['booking', 'schedule'] },
       { label: 'Follow-ups', path: '/follow-ups', icon: PhoneForwarded, keywords: ['outbound', 'callbacks'] },
       { label: 'Tasks', path: '/tasks', icon: ListChecks, keywords: ['todo'] },

@@ -67,7 +67,10 @@ LLM proposes tool call → voice service → backend /internal/tools → Policy 
 
 - **Every table has `tenant_id`** (a hospital) and **RLS enabled**. (`tenants.tenant_id` is a
   generated copy of `id`, so the rule holds uniformly.)
-- Staff membership lives in `tenant_members`; `public.user_tenant_ids()` powers every read policy.
+- Staff live in `staff` (user_id → auth.users, role admin/reception/doctor/viewer).
+  `public.current_tenant_id()` (SECURITY DEFINER) powers every read policy:
+  `tenant_id = (select public.current_tenant_id())`. `call_sessions` and `jobs` have no read policy
+  (internal only).
 - UUID primary keys (`gen_random_uuid()`).
 - `created_at` / `updated_at` on everything; `updated_at` is maintained by a trigger.
 - **Store UTC** (`timestamptz`), **display Asia/Kolkata**. Convert only at the edges (UI, spoken
@@ -81,6 +84,9 @@ LLM proposes tool call → voice service → backend /internal/tools → Policy 
   Supabase JWT (`Authorization: Bearer <access_token>`), verified server-side. End users have no
   insert/update/delete RLS policies. The backend connects as the table owner via `DATABASE_URL`.
 - Service-to-service calls (voice → backend) use `X-Internal-Key: <INTERNAL_API_KEY>`.
+- JWT verification (`backend/app/api/auth.py`): asymmetric tokens (ES256/RS256) are checked against
+  the project's JWKS (`/auth/v1/.well-known/jwks.json`); legacy HS256 tokens against
+  `SUPABASE_JWT_SECRET`. `require_roles(...)` guards each endpoint by staff role.
 - The **service role key** is used only by the backend (Storage, Auth admin). It is never shipped to
   the browser, and never placed in any `VITE_*` variable.
 
@@ -159,6 +165,24 @@ supabase/
 docs/
 scripts/            cross-platform dev scripts (venv runner, setup)
 ```
+
+## Data model (Phase 2)
+
+| Area | Tables |
+|---|---|
+| Tenancy | `tenants` (calling window, languages, on-duty phone, recording disclosure per language, settings JSON), `staff` |
+| Directory | `departments`, `doctors` (Telugu/Devanagari names, weekly `schedule` JSON, `slot_minutes`), `patients` (E.164 phone, caregiver, opt-out, DND) |
+| Scheduling | `appointment_slots` (open/held/booked/blocked, `held_by_session`, `held_until`), `appointments` (partial unique index: one active appointment per slot) |
+| Calls | `calls`, `call_sessions` (verification, `expires_at`), `call_events`, `call_transcripts`, `call_metrics` |
+| Automation | `call_tasks`, `workflow_rules`, `domain_events` (idempotency key), `jobs` |
+| Oversight | `escalations`, `agent_actions`, `audit_logs` |
+| Content & quality | `knowledge_articles` (per-language content, draft→approved, versions), `discharges`, `eval_runs` |
+
+Realtime publication: `calls`, `call_transcripts`, `call_events`, `escalations`, `call_tasks`,
+`appointments`. Private Storage bucket `recordings` (served through signed URLs).
+
+Slots are generated from each doctor's schedule (IST) by `app/services/slots.py` for a rolling 14-day
+window; generation is idempotent (`unique (doctor_id, starts_at)`).
 
 ## Schema changes
 

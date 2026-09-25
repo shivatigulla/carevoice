@@ -9,7 +9,7 @@ first phase that is not `done`.
 | #  | Phase                                        | Status  |
 |----|----------------------------------------------|---------|
 | 1  | Foundation                                   | done    |
-| 2  | Database, auth, seed, data pages             | todo    |
+| 2  | Database, auth, seed, data pages             | done    |
 | 3  | Tools + Policy Engine                        | todo    |
 | 4  | Voice core + browser Test Call               | todo    |
 | 5  | Real phone calls                             | todo    |
@@ -58,14 +58,42 @@ first phase that is not `done`.
 **Tests**: `npm test` — 15 pytest tests (config, `/health`, policy engine, provider selection).
 Browser: every page at 1440 and 1024 px in light and dark.
 
-**Notes for Phase 2**
-- `supabase/migrations/20260925000000_foundation.sql` is a **draft that has never been pushed**.
-  Phase 2 replaces it with the full schema (staff, departments, doctors, slots, call_sessions,
-  call_events, …). Do not `db:push` before Phase 2.
-- Dashboard hooks (`frontend/src/hooks/use-data.ts`) and `backend/app/models` follow the draft
-  schema and must be updated with it.
-- Backend JWT verification (for FastAPI writes) arrives in Phase 2 with auth. Newer Supabase
-  projects sign user JWTs with asymmetric keys (JWKS); support both that and the legacy
-  `SUPABASE_JWT_SECRET`.
-- Frontend packages for later phases (wavesurfer.js, @pipecat-ai/client-js, small-webrtc
-  transport) and voice extras (pipecat-ai-flows, webrtc) are added in the phase that uses them.
+**Notes carried into Phase 2** (resolved there): draft migration replaced, dashboard hooks and models
+updated, JWT verification added.
+
+---
+
+## Phase 2 — Database, auth, seed, data pages · done
+
+**Delivered**
+- Migration `20260925120000_core_schema.sql` (pushed to the linked project): 23 tables, all with
+  `tenant_id`, UUID PKs, `created_at`/`updated_at` triggers and RLS via `current_tenant_id()`;
+  FKs and indexes; partial unique index = one active appointment per slot; Realtime publication for
+  calls, call_transcripts, call_events, escalations, call_tasks, appointments; private `recordings`
+  bucket.
+- Backend: models for every table; staff auth (`app/api/auth.py`, JWKS ES256 + HS256 fallback,
+  `require_roles`); `POST /api/appointments/{id}/check-in` (admin/reception, today only, audited);
+  phone normalisation (E.164); reusable slot generator (`app/services/slots.py`); audit helper.
+- Idempotent seed (`npm run db:seed`): Sunrise Multispeciality Hospital (Hyderabad, 09:00–20:00),
+  settings (cancellation cutoff, emergency keywords te/hi/en/romanised, caring checklist,
+  pronunciation dict, recording disclosure te/hi/en), demo admin, 7 departments, 10 doctors with
+  Telugu/Devanagari names and schedules, 14-day slots, 30 patients (#1 = SEED_TEST_PHONE),
+  upcoming appointments, 6 agents with prompts and allowed tools.
+- Frontend: Patients (search + language filter, drawer with profile, caregiver, appointments,
+  communication timeline), Doctors (department filter, today's availability bar), Appointments
+  (day view with doctors as columns, off-hours/lunch shading, now line, popover, list toggle,
+  "Mark arrived" via the backend), Agents grid; dashboard/topbar on the new schema; Doctors added to
+  the sidebar.
+
+**Verified**
+- Logged out: REST returns 0 rows. Logged in as admin: own tenant's rows only; direct REST insert → 403.
+- Backend accepts the project's ES256 JWT; check-in rules (404 unknown, 409 not today) and audit log.
+- Realtime: an appointment updated in the DB re-renders the calendar within ~2 s.
+- `npm test`: 36 passed. Browser: all pages at 1440/1024, light/dark; console clean.
+
+**Notes for Phase 3**
+- Tool handlers go through `PolicyEngine` → services; use `call_sessions` (30-min expiry) for
+  verification and `appointment_slots.held_*` for 3-minute holds.
+- Worker jobs to add: release expired holds; `ensure_slots` to keep 14 days ahead.
+- `backend/app/policy/engine.py` is still the Phase 1 skeleton — Phase 3 replaces it with the full
+  pipeline (schema → permission → tenant → verification → business rules → transaction → audit).

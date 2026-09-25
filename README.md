@@ -89,7 +89,8 @@ postgresql://postgres.<project-ref>:<password>@aws-0-<region>.pooler.supabase.co
 | `TWILIO_*` | Only if `TELEPHONY_PROVIDER=twilio`: https://console.twilio.com |
 | `INTERNAL_API_KEY` | Make one up — any long random string. Use the **same** value in `backend/.env` and `voice/.env`. |
 | `PUBLIC_BASE_URL` | Needed later for real phone calls: a public HTTPS URL that reaches your machine (e.g. an ngrok or cloudflared tunnel). |
-| `SEED_TEST_PHONE` | Your own mobile in E.164 format, e.g. `+919876543210`. Seeded as a test patient. |
+| `SEED_TEST_PHONE` | Your own mobile, e.g. `+919876543210` (a bare 10-digit Indian number is fine). Seeded as patient #1 so test calls recognise you. |
+| `SEED_TEST_NAME`, `SEED_TEST_DOB` | Optional: the name and date of birth (YYYY-MM-DD) of that test patient. Agents use them to verify you on calls. |
 | `DEMO_ADMIN_EMAIL`, `DEMO_ADMIN_PASSWORD` | The dashboard login the seed script creates for you. |
 | `PRICE_*` | Your costs in ₹ for per-call cost analytics: telephony per minute, speech-to-text per second, text-to-speech per 1,000 characters, LLM per million input/output tokens. Copy them from each provider's pricing page; leave `0` to skip. |
 
@@ -97,9 +98,6 @@ Fill in `backend/.env`, `voice/.env` and `frontend/.env`. The frontend only need
 values.
 
 ## 4. Link the Supabase CLI and create the database
-
-> **Wait for Phase 2 before running `db:push` / `db:seed`.** The full database schema is created
-> there; until then the dashboard runs without a database.
 
 The Supabase CLI is installed locally by `npm install` (use it through `npx supabase`).
 
@@ -121,13 +119,17 @@ Create all tables, security policies and realtime settings:
 npm run db:push
 ```
 
-Create your hospital, the six AI agents, your admin login and the storage bucket:
+Create the demo hospital (Sunrise Multispeciality Hospital, Hyderabad): departments, 10 doctors,
+14 days of appointment slots, 30 patients, upcoming appointments, the six AI agents and your admin
+login:
 
 ```bash
 npm run db:seed
 ```
 
-The seed is safe to run again. It creates configuration only — never fake calls or patients.
+The seed is safe to run again: it only adds what's missing. Demo patients use +91 555… numbers, which
+no Indian mobile uses, so automated calls can never reach a real person — except patient #1, which is
+your `SEED_TEST_PHONE`.
 
 ## 5. Run it
 

@@ -20,4 +20,13 @@ export const AGENT_META: Record<AgentKey, { icon: LucideIcon; order: number }> =
   console: { icon: SquareTerminal, order: 5 },
 }
 
+export const AGENT_LABEL: Record<AgentKey, string> = {
+  reception: 'Reception',
+  appointment: 'Appointment',
+  follow_up: 'Follow-up',
+  pre_visit: 'Pre-Visit',
+  caring: 'Caring',
+  console: 'Console',
+}
+
 export type Language = 'te' | 'hi' | 'en'

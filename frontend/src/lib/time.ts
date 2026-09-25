@@ -52,3 +52,58 @@ export function formatDuration(totalSeconds: number): string {
   const ss = String(sec).padStart(2, '0')
   return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`
 }
+
+const weekdayFmt = new Intl.DateTimeFormat('en-US', { timeZone: HOSPITAL_TZ, weekday: 'short' })
+const dayLabelFmt = new Intl.DateTimeFormat('en-IN', { timeZone: HOSPITAL_TZ, weekday: 'short', day: 'numeric', month: 'short' })
+const longDateFmt = new Intl.DateTimeFormat('en-IN', { timeZone: HOSPITAL_TZ, day: 'numeric', month: 'short', year: 'numeric' })
+const hmFmt = new Intl.DateTimeFormat('en-GB', { timeZone: HOSPITAL_TZ, hour: '2-digit', minute: '2-digit', hour12: false })
+
+/** 'mon' … 'sun' for the IST calendar day containing `value`. */
+export function istWeekdayKey(value: string | Date): 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun' {
+  return weekdayFmt.format(new Date(value)).toLowerCase().slice(0, 3) as ReturnType<typeof istWeekdayKey>
+}
+
+export function formatDayLabel(value: string | Date): string {
+  return dayLabelFmt.format(new Date(value))
+}
+
+export function formatLongDate(value: string | Date): string {
+  return longDateFmt.format(new Date(value))
+}
+
+/** 24h "HH:MM" in IST. */
+export function formatHm(value: string | Date): string {
+  return hmFmt.format(new Date(value))
+}
+
+/** Minutes since IST midnight for an instant. */
+export function istMinutes(value: string | Date): number {
+  const [h, m] = formatHm(value).split(':').map(Number)
+  return h * 60 + m
+}
+
+/** "13:30" -> 810 */
+export function hmToMinutes(hm: string): number {
+  const [h, m] = hm.split(':').map(Number)
+  return h * 60 + m
+}
+
+export function isSameIstDay(a: string | Date, b: string | Date): boolean {
+  return longDateFmt.format(new Date(a)) === longDateFmt.format(new Date(b))
+}
+
+/** Whole years between a date-of-birth (YYYY-MM-DD) and today. */
+export function ageFromDob(dob: string | null): number | null {
+  if (!dob) return null
+  const [y, m, d] = dob.split('-').map(Number)
+  const now = new Date()
+  let age = now.getFullYear() - y
+  if (now.getMonth() + 1 < m || (now.getMonth() + 1 === m && now.getDate() < d)) age--
+  return age
+}
+
+/** "+919876543210" -> "+91 98765 43210" */
+export function formatPhone(e164: string): string {
+  const m = /^\+91(\d{5})(\d{5})$/.exec(e164)
+  return m ? `+91 ${m[1]} ${m[2]}` : e164
+}

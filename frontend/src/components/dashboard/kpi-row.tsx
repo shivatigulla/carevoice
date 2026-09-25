@@ -25,16 +25,17 @@ export function KpiRow() {
         loading={kpis.isLoading}
         error={kpis.isError}
         value={k?.callsToday}
-        trend={k ? { delta: k.callsToday - k.callsSameTimeYesterday, label: 'vs this time yesterday' } : undefined}
+        trend={k && (k.callsToday || k.callsSameTimeYesterday) ? { delta: k.callsToday - k.callsSameTimeYesterday, label: 'vs this time yesterday' } : undefined}
+        hint="No calls yet today"
       />
       <KpiCard
-        label="Appointments booked"
+        label="Appointments today"
         icon={CalendarCheck2}
         accent="ai"
         loading={kpis.isLoading}
         error={kpis.isError}
-        value={k?.bookedToday}
-        trend={k ? { delta: k.bookedToday - k.bookedSameTimeYesterday, label: 'vs this time yesterday' } : undefined}
+        value={k?.appointmentsToday}
+        hint={k ? `${k.checkedInToday} checked in` : undefined}
       />
       <KpiCard
         label="Follow-ups due"

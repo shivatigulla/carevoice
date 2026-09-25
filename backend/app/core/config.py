@@ -1,5 +1,6 @@
 """Application settings, loaded from environment variables / backend/.env."""
 
+from datetime import date
 from functools import lru_cache
 from typing import Literal
 
@@ -48,6 +49,8 @@ class Settings(BaseSettings):
 
     # Seeding
     seed_test_phone: str = ""
+    seed_test_name: str = "Priya Reddy"
+    seed_test_dob: date = date(1995, 6, 15)
     demo_admin_email: str = ""
     demo_admin_password: str = ""
 

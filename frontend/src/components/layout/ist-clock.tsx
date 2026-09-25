@@ -19,8 +19,8 @@ export function IstClock({ className }: { className?: string }) {
     return () => clearInterval(t)
   }, [])
   return (
-    <div className={cn('flex items-baseline gap-2 leading-none', className)} title="India Standard Time (Asia/Kolkata)">
-      <span className="text-xs text-muted-foreground">{dateFmt.format(now)}</span>
+    <div className={cn('flex shrink-0 items-baseline gap-2 leading-none whitespace-nowrap', className)} title="India Standard Time (Asia/Kolkata)">
+      <span className="hidden text-xs whitespace-nowrap text-muted-foreground xl:inline">{dateFmt.format(now)}</span>
       <time dateTime={now.toISOString()} className="font-mono text-[13px] font-medium tabular">
         {timeFmt.format(now)}
       </time>

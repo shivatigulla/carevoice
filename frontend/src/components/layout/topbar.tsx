@@ -14,17 +14,17 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { useTenant } from '@/hooks/use-data'
+import { useMembership } from '@/hooks/use-data'
 import { useAuth } from '@/providers/auth-context'
 import { useTheme } from '@/providers/theme-context'
 
 function HospitalName() {
   const { configured } = useAuth()
-  const tenant = useTenant()
+  const membership = useMembership()
   let name: ReactNode
   if (!configured) name = <span className="text-muted-foreground">Setup mode</span>
-  else if (tenant.isLoading) name = <Skeleton className="h-4 w-36" />
-  else if (tenant.data?.tenant) name = tenant.data.tenant.name
+  else if (membership.isLoading) name = <Skeleton className="h-4 w-36" />
+  else if (membership.data?.tenant) name = membership.data.tenant.name
   else name = <span className="text-muted-foreground">No hospital assigned</span>
 
   return (
@@ -37,6 +37,7 @@ function HospitalName() {
 
 function UserMenu() {
   const { session, signOut } = useAuth()
+  const membership = useMembership()
   if (!session) return null
   const email = session.user.email ?? 'Signed in'
   return (
@@ -49,7 +50,13 @@ function UserMenu() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuLabel className="truncate font-normal text-muted-foreground">{email}</DropdownMenuLabel>
+        <DropdownMenuLabel className="space-y-0.5 font-normal">
+          <div className="truncate text-foreground">{membership.data?.full_name ?? email}</div>
+          <div className="truncate text-xs text-muted-foreground">
+            {email}
+            {membership.data?.role && <span className="capitalize"> · {membership.data.role}</span>}
+          </div>
+        </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={() => void signOut()}>
           <LogOut /> Sign out
@@ -110,7 +117,7 @@ export function Topbar({ onOpenMobileNav, onOpenCommand }: TopbarProps) {
         >
           <Search className="size-3.5" />
           <span className="hidden xl:inline">Jump to…</span>
-          <kbd className="rounded border bg-muted px-1 font-mono text-[10px] font-medium">{isMac ? '⌘' : 'Ctrl'} K</kbd>
+          <kbd className="rounded border bg-muted px-1 font-mono text-[10px] font-medium whitespace-nowrap">{isMac ? '⌘' : 'Ctrl'} K</kbd>
         </button>
         <Button variant="ghost" size="icon" className="sm:hidden" onClick={onOpenCommand} aria-label="Search">
           <Search />
