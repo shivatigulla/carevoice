@@ -19,7 +19,7 @@ function LiveBadge({ count, collapsed }: { count: number; collapsed: boolean }) 
     )
   }
   return (
-    <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center gap-1 rounded-full bg-live/15 px-1.5 font-mono text-[11px] font-medium text-live-foreground ring-1 ring-live/30 ring-inset dark:text-live">
+    <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center gap-1 rounded-full bg-live/20 px-1.5 font-mono text-[11px] font-medium text-emerald-300 ring-1 ring-live/40 ring-inset">
       <span className="size-1.5 animate-pulse rounded-full bg-live" />
       {count}
     </span>
@@ -35,8 +35,8 @@ function SidebarLink({ item, collapsed, badge, onNavigate }: { item: NavItem; co
       onClick={onNavigate}
       className={({ isActive }) =>
         cn(
-          'group relative flex h-8 items-center gap-3 rounded-md px-2.5 text-[13.5px] font-medium text-muted-foreground transition-colors outline-none',
-          'hover:bg-sidebar-accent/70 hover:text-sidebar-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring/50',
+          'group relative flex h-8 items-center gap-3 rounded-md px-2.5 text-[13.5px] font-medium text-sidebar-foreground/70 transition-colors outline-none',
+          'hover:bg-sidebar-accent/60 hover:text-sidebar-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring/60',
           isActive && 'bg-sidebar-accent text-sidebar-accent-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
           collapsed && 'justify-center px-0',
         )
@@ -44,7 +44,7 @@ function SidebarLink({ item, collapsed, badge, onNavigate }: { item: NavItem; co
     >
       {({ isActive }) => (
         <>
-          {isActive && !collapsed && <span aria-hidden className="absolute top-1.5 bottom-1.5 -left-3 w-[3px] rounded-r-full bg-primary" />}
+          {isActive && !collapsed && <span aria-hidden className="absolute top-1.5 bottom-1.5 -left-3 w-[3px] rounded-r-full bg-sky-300" />}
           <Icon className="size-[18px] shrink-0" strokeWidth={isActive ? 2.1 : 1.8} />
           {!collapsed && <span className="truncate">{item.label}</span>}
           {badge !== undefined && <LiveBadge count={badge} collapsed={collapsed} />}
@@ -78,17 +78,17 @@ export function Sidebar({ collapsed, onToggle, onNavigate, className }: SidebarP
   return (
     <aside className={cn('flex h-full flex-col bg-sidebar text-sidebar-foreground', className)}>
       <div className={cn('flex h-16 shrink-0 items-center gap-2.5 px-4', collapsed && 'justify-center px-0')}>
-        <BrandMark />
-        {!collapsed && <BrandWordmark />}
+        <BrandMark onDark />
+        {!collapsed && <BrandWordmark onDark />}
       </div>
 
       <nav className={cn('flex-1 space-y-4 overflow-y-auto px-3 py-2 [scrollbar-width:thin]', collapsed && 'px-2')} aria-label="Main">
         {NAV_SECTIONS.map((section) => (
           <div key={section.label} className="space-y-0.5">
             {collapsed ? (
-              <div className="mx-auto mb-2 h-px w-6 bg-sidebar-border first:hidden" />
+              <div className="mx-auto mb-2 h-px w-6 bg-sidebar-foreground/15 first:hidden" />
             ) : (
-              <div className="mb-1.5 px-2.5 text-[11px] font-semibold tracking-[0.08em] text-muted-foreground/80 uppercase">{section.label}</div>
+              <div className="mb-1.5 px-2.5 text-[11px] font-semibold tracking-[0.08em] text-sidebar-foreground/45 uppercase">{section.label}</div>
             )}
             {section.items.map((item) => (
               <SidebarLink
@@ -109,7 +109,7 @@ export function Sidebar({ collapsed, onToggle, onNavigate, className }: SidebarP
             variant="ghost"
             size={collapsed ? 'icon' : 'sm'}
             onClick={onToggle}
-            className={cn('text-muted-foreground', !collapsed && 'w-full justify-start')}
+            className={cn('text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground', !collapsed && 'w-full justify-start')}
             aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
             {collapsed ? <PanelLeftOpen /> : <PanelLeftClose />}

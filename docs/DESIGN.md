@@ -1,6 +1,6 @@
 # CareVoice Design System
 
-**Feel:** calm, clinical, premium — *mission control for a hospital's AI workforce*. Staff glance at it between
+**Feel:** professional navy blue and white, calm and clinical — *mission control for a hospital's AI workforce*. Staff glance at it between
 patients, so it must be quiet until something needs attention, then unmistakable. It is not a
 generic admin template: no rainbow charts, no loud gradients, no decorative noise.
 
@@ -15,16 +15,20 @@ Colors are CSS variables on `:root` / `.dark`, exposed to Tailwind as utilities
 
 | Token                | Light     | Dark      | Use                                          |
 |----------------------|-----------|-----------|----------------------------------------------|
-| `background`         | `#F7F8F6` | `#0B1413` | App canvas                                   |
-| `card` / `surface`   | `#FFFFFF` | `#111C1B` | Cards, panels, popovers                      |
-| `foreground` / `ink` | `#0F1B1A` | `#E6EFED` | Primary text                                 |
-| `muted-foreground`   | `#5C6B69` | `#8EA19E` | Secondary text                               |
-| `border`             | `#E4E9E7` | `#1F2F2D` | 1px borders                                  |
-| `primary`            | `#0E7C7B` | `#19A3A1` | Deep teal — brand, primary actions, Telugu   |
-| `live`               | `#3DDC97` | `#52EAA8` | Mint — something is happening *now*          |
-| `ai`                 | `#5B6CFF` | `#7483FF` | Indigo — AI activity, agents, English        |
-| `warning`            | `#F2A93B` | `#F6BA58` | Amber — needs attention, Hindi               |
-| `critical`           | `#E5484D` | `#F0676B` | Coral — emergencies, failures                |
+| `background`         | `#F4F6FA` | `#070E1C` | App canvas                                   |
+| `card` / `surface`   | `#FFFFFF` | `#0E1A30` | Cards, panels, popovers                      |
+| `foreground` / `ink` | `#0B1B33` | `#E6ECF5` | Primary text                                 |
+| `muted-foreground`   | `#5B6B82` | `#93A3BD` | Secondary text                               |
+| `border`             | `#E2E8F0` | `#1C2E4F` | 1px borders                                  |
+| `primary`            | `#1E3A8A` | `#3B82F6` | Navy blue — brand, primary actions           |
+| `sidebar`            | `#0B1F44` | `#081226` | Navy sidebar with white text                 |
+| `live`               | `#10B981` | `#34D399` | Green — something is happening *now*         |
+| `ai`                 | `#4F46E5` | `#818CF8` | Indigo — AI activity, agents, English        |
+| `warning`            | `#F59E0B` | `#FBBF24` | Amber — needs attention, Hindi               |
+| `critical`           | `#DC2626` | `#F87171` | Red — emergencies, failures                  |
+
+The look is a professional **navy blue and white** dashboard: navy sidebar and primary actions, white
+cards on a cool light-grey canvas.
 
 Rules:
 - **Mint means live.** Use it only for things happening right now (on a call, streaming). Never as a
