@@ -10,8 +10,8 @@ first phase that is not `done`.
 |----|----------------------------------------------|---------|
 | 1  | Foundation                                   | done    |
 | 2  | Database, auth, seed, data pages             | done    |
-| 3  | Tools + Policy Engine                        | todo    |
-| 4  | Voice core + browser Test Call               | todo    |
+| 3  | Tools + Policy Engine                        | partial (fast track) |
+| 4  | Voice core + browser Test Call               | partial (fast track) |
 | 5  | Real phone calls                             | todo    |
 | 6  | Reception → Appointment agent (Pipecat Flows)| todo    |
 | 7  | Call intelligence                            | todo    |
@@ -97,3 +97,29 @@ updated, JWT verification added.
 - Worker jobs to add: release expired holds; `ensure_slots` to keep 14 days ahead.
 - `backend/app/policy/engine.py` is still the Phase 1 skeleton — Phase 3 replaces it with the full
   pipeline (schema → permission → tenant → verification → business rules → transaction → audit).
+
+---
+
+## Fast track (demo slice of Phases 3, 4 and 6) · awaiting voice test
+
+Built under time pressure to reach a working demo; the remaining parts of Phases 3/4/6 are listed below.
+
+**Delivered**
+- `backend/app/services/tools.py`: tools verify_patient, list_departments, search_doctors (Telugu/Devanagari/
+  Latin names + static symptom→department map), get_available_slots (max 3, part_of_day, spoken te/hi/en),
+  hold_slot (atomic, 3 min), create_appointment (needs own hold + verified caller, one per doctor per day),
+  get_patient_appointments, cancel_appointment (cutoff), escalate, record_outcome, get_hospital_info.
+  `run_tool` = policy checks (tool exists, call live, agent allowed, verification valid) → handler →
+  agent_actions + call_events (+ audit_logs on writes).
+- `backend/app/api/internal.py` (X-Internal-Key): calls/start, transcript, event, end; tools/{name}.
+- `voice/bot.py`: SmallWebRTC → Sarvam STT (saaras, codemix) → language tracker (dominant of last 3 turns,
+  switches TTS language) → OpenAI LLM with backend tools → Sarvam TTS (bulbul), Silero VAD, interruptions,
+  filler line while tools run, recording disclosure + personalised greeting, transcripts to backend.
+  `voice/main.py`: POST/PATCH /api/offer.
+- Frontend Test Call sheet: mic button, state, waveform, live transcript + ToolCallCards via Realtime.
+- Worker housekeeping: release expired holds, close stale live calls.
+- Browser Test Call simulates a call from patient #1 (SEED_TEST_PHONE); verification = birth year / DOB.
+
+**Not yet (remaining from Phases 3/4/6)**: parse_spoken_time, reschedule_appointment, rapidfuzz +
+indic-transliteration matching, Tool Playground page, pytest for tool rules, per-turn latency to
+call_metrics, Pipecat Flows handoff, silence/DTMF handling.

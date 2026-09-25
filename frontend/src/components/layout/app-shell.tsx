@@ -6,6 +6,7 @@ import { CommandPalette } from '@/components/layout/command-palette'
 import { SetupBanner } from '@/components/layout/setup-banner'
 import { Sidebar } from '@/components/layout/sidebar'
 import { Topbar } from '@/components/layout/topbar'
+import { TestCallSheet } from '@/components/test-call/test-call-sheet'
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet'
 import { queryKeys } from '@/hooks/use-data'
 import { useRealtimeInvalidate } from '@/hooks/use-realtime'
@@ -26,6 +27,7 @@ export function AppShell() {
   const [collapsed, setCollapsed] = useState(readCollapsed)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [commandOpen, setCommandOpen] = useState(false)
+  const [testCallOpen, setTestCallOpen] = useState(false)
 
   // Calls drive the sidebar badge and dashboard, so the shell owns this subscription.
   useRealtimeInvalidate('calls', [queryKeys.liveCalls, queryKeys.kpis])
@@ -58,7 +60,7 @@ export function AppShell() {
       </Sheet>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <Topbar onOpenMobileNav={() => setMobileOpen(true)} onOpenCommand={() => setCommandOpen(true)} />
+        <Topbar onOpenMobileNav={() => setMobileOpen(true)} onOpenCommand={() => setCommandOpen(true)} onOpenTestCall={() => setTestCallOpen(true)} />
         <main className="flex-1 overflow-y-auto">
           <SetupBanner />
           <AnimatePresence mode="wait" initial={false}>
@@ -77,6 +79,7 @@ export function AppShell() {
       </div>
 
       <CommandPalette open={commandOpen} onOpenChange={setCommandOpen} />
+      <TestCallSheet open={testCallOpen} onOpenChange={setTestCallOpen} />
     </div>
   )
 }

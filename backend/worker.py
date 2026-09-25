@@ -15,6 +15,8 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from app.core.logging import configure_logging
 from app.db.session import DatabaseNotConfigured, dispose_engine, get_sessionmaker
+from sqlalchemy import text
+
 from app.jobs.queue import release_stale_jobs, run_due_jobs
 
 configure_logging()
@@ -53,10 +55,29 @@ async def reap_stale_jobs() -> None:
         pass
 
 
+async def housekeeping() -> None:
+    """Release expired slot holds; close calls left 'live' by a crashed session."""
+    try:
+        async with get_sessionmaker()() as db:
+            holds = await db.execute(text(
+                "update public.appointment_slots set status = 'open', held_by_session = null, held_until = null "
+                "where status = 'held' and held_until < now()"))
+            calls = await db.execute(text(
+                "update public.calls set status = 'completed', ended_at = now(), current_stage = 'ended', "
+                "outcome = coalesce(outcome, 'INCOMPLETE'), duration_sec = extract(epoch from now() - started_at)::int "
+                "where status = 'live' and started_at < now() - interval '30 minutes'"))
+            await db.commit()
+            if holds.rowcount or calls.rowcount:
+                log.info("housekeeping: released %s hold(s), closed %s stale call(s)", holds.rowcount, calls.rowcount)
+    except Exception:  # noqa: BLE001 — drain_job_queue already reports DB problems
+        pass
+
+
 async def main() -> None:
     scheduler = AsyncIOScheduler(timezone="UTC")
     scheduler.add_job(drain_job_queue, "interval", seconds=5, id="drain_job_queue", max_instances=1, coalesce=True)
     scheduler.add_job(reap_stale_jobs, "interval", minutes=2, id="reap_stale_jobs", max_instances=1, coalesce=True)
+    scheduler.add_job(housekeeping, "interval", seconds=30, id="housekeeping", max_instances=1, coalesce=True)
     scheduler.start()
     log.info("worker %s started (%d scheduled jobs)", WORKER_ID, len(scheduler.get_jobs()))
 

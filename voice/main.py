@@ -7,10 +7,12 @@ touches the database: every tool call is sent to the backend's Policy Engine ove
 (BACKEND_URL + INTERNAL_API_KEY).
 """
 
+import asyncio
 import logging
 from importlib.metadata import PackageNotFoundError, version
+from typing import Any
 
-from fastapi import FastAPI
+from fastapi import BackgroundTasks, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -39,7 +41,7 @@ app = FastAPI(title="CareVoice Voice Service", version="0.1.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[o.strip() for o in settings.cors_origins.split(",") if o.strip()],
-    allow_methods=["GET"],
+    allow_methods=["GET", "POST", "PATCH"],
     allow_headers=["*"],
 )
 
@@ -64,3 +66,43 @@ async def health() -> dict[str, object]:
             "internal_api_key": bool(settings.internal_api_key),
         },
     }
+
+
+# ---------------------------------------------------------------------------
+# Browser Test Call: SmallWebRTC signalling. One pipeline (bot.run_bot) per peer connection.
+# ---------------------------------------------------------------------------
+
+from pipecat.transports.smallwebrtc.request_handler import (  # noqa: E402
+    IceCandidate,
+    SmallWebRTCPatchRequest,
+    SmallWebRTCRequest,
+    SmallWebRTCRequestHandler,
+)
+
+from bot import run_bot  # noqa: E402
+
+webrtc = SmallWebRTCRequestHandler()
+
+
+@app.post("/api/offer")
+async def offer(request: Request, background: BackgroundTasks) -> dict[str, Any]:
+    body = await request.json()
+
+    async def on_connection(connection: Any) -> None:
+        background.add_task(run_bot, connection, settings)
+
+    answer = await webrtc.handle_web_request(SmallWebRTCRequest.from_dict(body), on_connection)
+    return answer or {}
+
+
+@app.patch("/api/offer")
+async def offer_patch(request: Request) -> dict[str, str]:
+    body = await request.json()
+    candidates = [IceCandidate(**c) for c in body.get("candidates", [])]
+    await webrtc.handle_patch_request(SmallWebRTCPatchRequest(pc_id=body["pc_id"], candidates=candidates))
+    return {"status": "success"}
+
+
+@app.on_event("shutdown")
+async def _shutdown() -> None:
+    await asyncio.shield(webrtc.close())

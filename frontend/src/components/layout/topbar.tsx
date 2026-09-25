@@ -93,9 +93,10 @@ function PendingAction({ icon: Icon, label, hint, variant }: { icon: LucideIcon;
 interface TopbarProps {
   onOpenMobileNav: () => void
   onOpenCommand: () => void
+  onOpenTestCall: () => void
 }
 
-export function Topbar({ onOpenMobileNav, onOpenCommand }: TopbarProps) {
+export function Topbar({ onOpenMobileNav, onOpenCommand, onOpenTestCall }: TopbarProps) {
   const { resolvedTheme, toggleTheme } = useTheme()
   const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform)
 
@@ -126,7 +127,9 @@ export function Topbar({ onOpenMobileNav, onOpenCommand }: TopbarProps) {
         <SystemStatus />
 
         <PendingAction icon={Sparkles} label="Ask CareVoice" hint="arrives with the Console agent" variant="ai" />
-        <PendingAction icon={PhoneCall} label="Test Call" hint="arrives with the voice pipeline" variant="default" />
+        <Button size="sm" onClick={onOpenTestCall}>
+          <PhoneCall /> <span className="hidden xl:inline">Test Call</span>
+        </Button>
 
         <Button variant="ghost" size="icon" onClick={toggleTheme} aria-label={`Switch to ${resolvedTheme === 'dark' ? 'light' : 'dark'} mode`}>
           {resolvedTheme === 'dark' ? <Sun /> : <Moon />}
