@@ -15,7 +15,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { useFollowUpQueue, useRecentCalls, type Purpose, type QueueItem } from '@/hooks/use-calls'
 import { useRealtimeInvalidate } from '@/hooks/use-realtime'
 import { callLabel, callTone } from '@/lib/call-status'
-import { ApiError, apiFetch } from '@/lib/api'
+import { apiErrorMessage, startOutboundCall } from '@/lib/api'
 import { formatDayLabel, formatDuration, formatRelative, formatTime, istDayStart } from '@/lib/time'
 import { cn } from '@/lib/utils'
 
@@ -28,33 +28,18 @@ const PURPOSE: Record<Purpose, { label: string; icon: typeof CalendarClock; clas
 /** Seeded demo patients use +91 555… numbers, which no Indian mobile uses — they can't be dialled. */
 const isDemoNumber = (phone: string) => phone.startsWith('+91555')
 
-function errorText(e: unknown) {
-  if (e instanceof ApiError) {
-    try {
-      return String((JSON.parse(e.message) as { detail?: unknown }).detail ?? e.message)
-    } catch {
-      return e.message
-    }
-  }
-  return e instanceof Error ? e.message : 'Something went wrong'
-}
-
 function QueueRow({ item, onCalled, index }: { item: QueueItem; onCalled: (callId: string) => void; index: number }) {
   const qc = useQueryClient()
   const p = PURPOSE[item.purpose]
   const demo = isDemoNumber(item.patient.phone)
   const call = useMutation({
-    mutationFn: () =>
-      apiFetch<{ call_id: string }>('/api/calls/outbound', {
-        method: 'POST',
-        body: JSON.stringify({ patient_id: item.patient.id, appointment_id: item.appointment_id, purpose: item.purpose }),
-      }),
+    mutationFn: () => startOutboundCall({ patient_id: item.patient.id, appointment_id: item.appointment_id, purpose: item.purpose }),
     onSuccess: (r) => {
       toast.success(`Calling ${item.patient.name}…`)
       qc.invalidateQueries({ queryKey: ['followup-queue'] })
       onCalled(r.call_id)
     },
-    onError: (e) => toast.error(`Couldn't call ${item.patient.name}: ${errorText(e)}`),
+    onError: (e) => toast.error(`Couldn't call ${item.patient.name}: ${apiErrorMessage(e)}`),
   })
   const when = item.purpose === 'reminder' ? `${formatDayLabel(item.starts_at)}, ${formatTime(item.starts_at)}` : formatDayLabel(item.starts_at)
   const live = item.lastCall?.status === 'live'

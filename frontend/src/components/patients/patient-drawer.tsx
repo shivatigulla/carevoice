@@ -7,7 +7,7 @@ import { PersonAvatar } from '@/components/common/person-avatar'
 import { EmptyState, ErrorState, LanguageChip, SkeletonCard, StatusPill, TimelineItem } from '@/components/signature'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet'
-import { apiFetch, ApiError } from '@/lib/api'
+import { apiErrorMessage, startOutboundCall } from '@/lib/api'
 import { usePatientAppointments, usePatientCalls } from '@/hooks/use-data'
 import { useRealtimeInvalidate } from '@/hooks/use-realtime'
 import { AGENT_LABEL } from '@/lib/agents'
@@ -112,19 +112,9 @@ function Timeline({ patientId }: { patientId: string }) {
 
 function CallNowButton({ patient }: { patient: PatientRow }) {
   const m = useMutation({
-    mutationFn: () => apiFetch('/api/calls/outbound', { method: 'POST', body: JSON.stringify({ patient_id: patient.id }) }),
+    mutationFn: () => startOutboundCall({ patient_id: patient.id, purpose: 'reminder' }),
     onSuccess: () => toast.success(`Calling ${patient.name}…`),
-    onError: (e) => {
-      let msg = e instanceof Error ? e.message : 'Call failed'
-      if (e instanceof ApiError) {
-        try {
-          msg = String((JSON.parse(e.message) as { detail?: unknown }).detail ?? msg)
-        } catch {
-          /* keep raw */
-        }
-      }
-      toast.error(`Couldn't place the call: ${msg}`)
-    },
+    onError: (e) => toast.error(`Couldn't place the call: ${apiErrorMessage(e)}`),
   })
   const blocked = patient.opt_out || patient.dnd
   return (

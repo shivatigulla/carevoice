@@ -9,7 +9,8 @@ import { Segmented } from '@/components/common/segmented'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet'
-import { apiFetch, ApiError } from '@/lib/api'
+import { apiErrorMessage, startOutboundCall } from '@/lib/api'
+import { phoneInputSchema } from '@/lib/schemas'
 import { env, isVoiceServiceConfigured } from '@/lib/env'
 import { requireSupabase, supabase } from '@/lib/supabase'
 import { formatDuration } from '@/lib/time'
@@ -25,16 +26,6 @@ interface PhoneCallState {
   outcome: string | null
 }
 
-function apiErrorText(e: unknown) {
-  if (e instanceof ApiError) {
-    try {
-      return String((JSON.parse(e.message) as { detail?: unknown }).detail ?? e.message)
-    } catch {
-      return e.message
-    }
-  }
-  return e instanceof Error ? e.message : 'Something went wrong'
-}
 
 interface Turn {
   id: string
@@ -151,10 +142,15 @@ export function TestCallSheet({ open, onOpenChange }: { open: boolean; onOpenCha
     setPhoneCall(null)
     setDialing(true)
     try {
-      const r = await apiFetch<{ call_id: string; patient: string | null }>('/api/calls/outbound', { method: 'POST', body: JSON.stringify({ phone }) })
+      const checked = phoneInputSchema.safeParse(phone)
+      if (!checked.success) {
+        setError(checked.error.issues[0]?.message ?? 'Invalid phone number')
+        return
+      }
+      const r = await startOutboundCall({ phone: checked.data, purpose: 'booking' })
       setCallId(r.call_id)
     } catch (e) {
-      setError(apiErrorText(e))
+      setError(apiErrorMessage(e))
     } finally {
       setDialing(false)
     }

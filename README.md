@@ -4,7 +4,8 @@ Multi-agent AI voice operations platform for hospitals in India. AI voice agents
 normal phone calls in **Telugu, Hindi and English** (with natural code-mixing), book appointments,
 make follow-up calls — and hospital staff watch everything live on a dashboard.
 
-> Built in phases — see [`docs/PROGRESS.md`](docs/PROGRESS.md) for what's done. Read
+> **Design overview:** [`docs/SYSTEM_DESIGN.md`](docs/SYSTEM_DESIGN.md) — user roles, architecture, database
+> schema, AI integration, validation and security. Built in phases — see [`docs/PROGRESS.md`](docs/PROGRESS.md). Read
 > [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) (the rules) and [`docs/DESIGN.md`](docs/DESIGN.md)
 > (the look) before building features.
 

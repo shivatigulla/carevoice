@@ -8,6 +8,7 @@ import { LanguageChip, LiveWaveform } from '@/components/signature'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { loginSchema } from '@/lib/schemas'
 import { useAuth } from '@/providers/auth-context'
 import { useTheme } from '@/providers/theme-context'
 
@@ -28,9 +29,14 @@ export default function LoginPage() {
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
     setError(null)
+    const form = loginSchema.safeParse({ email, password })
+    if (!form.success) {
+      setError(form.error.issues[0]?.message ?? 'Check your email and password')
+      return
+    }
     setSubmitting(true)
     try {
-      await signIn(email, password)
+      await signIn(form.data.email, form.data.password)
       navigate(from, { replace: true })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Sign in failed')

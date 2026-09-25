@@ -4,34 +4,23 @@ import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
 import { useMembership } from '@/hooks/use-data'
-import { ApiError, apiFetch } from '@/lib/api'
+import { apiErrorMessage, checkInAppointment } from '@/lib/api'
 import { CAN_CHECK_IN } from '@/lib/status'
 import { isSameIstDay } from '@/lib/time'
 import type { AppointmentRow } from '@/lib/types'
-
-function errorMessage(e: unknown) {
-  if (e instanceof ApiError) {
-    try {
-      return (JSON.parse(e.message) as { detail?: string }).detail ?? e.message
-    } catch {
-      return e.message
-    }
-  }
-  return e instanceof Error ? e.message : 'Something went wrong'
-}
 
 /** "Mark arrived": a staff write, so it goes through the backend (JWT-authenticated), never supabase-js. */
 export function MarkArrivedButton({ appointment, size = 'sm' }: { appointment: AppointmentRow; size?: 'sm' | 'xs' }) {
   const qc = useQueryClient()
   const role = useMembership().data?.role
   const mutation = useMutation({
-    mutationFn: () => apiFetch(`/api/appointments/${appointment.id}/check-in`, { method: 'POST' }),
+    mutationFn: () => checkInAppointment(appointment.id),
     onSuccess: () => {
       toast.success(`${appointment.patient?.name ?? 'Patient'} marked as arrived`)
       qc.invalidateQueries({ queryKey: ['appointments'] })
       qc.invalidateQueries({ queryKey: ['kpis'] })
     },
-    onError: (e) => toast.error(`Couldn't mark as arrived: ${errorMessage(e)}`),
+    onError: (e) => toast.error(`Couldn't mark as arrived: ${apiErrorMessage(e)}`),
   })
 
   const allowed = role === 'admin' || role === 'reception'

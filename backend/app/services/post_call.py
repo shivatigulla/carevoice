@@ -12,6 +12,7 @@ from datetime import timedelta
 from typing import Any
 
 from openai import AsyncOpenAI
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -30,6 +31,15 @@ Return JSON only:
 Never guess: if the patient did not clearly confirm a specific offered slot, booked_slot_code is null."""
 
 
+class CallDecision(BaseModel):
+    """Strict shape for the LLM's reading of the call. Anything else is rejected, never acted on."""
+
+    model_config = ConfigDict(extra="ignore")
+    booked_slot_code: str | None = Field(default=None, pattern=r"^S\d{1,3}$")
+    confirmed_existing: bool = False
+    reason: str | None = Field(default=None, max_length=200)
+
+
 async def _event(db: AsyncSession, tenant_id: uuid.UUID, call_id: uuid.UUID, type_: str, label: str, payload: dict[str, Any]) -> None:
     await db.execute(
         text("insert into public.call_events (tenant_id, call_id, type, label, payload) values (:t, :c, :ty, :l, cast(:p as jsonb))"),
@@ -37,7 +47,7 @@ async def _event(db: AsyncSession, tenant_id: uuid.UUID, call_id: uuid.UUID, typ
     )
 
 
-async def extract_decision(transcript: str, offers: dict[str, str]) -> dict[str, Any]:
+async def extract_decision(transcript: str, offers: dict[str, str]) -> CallDecision:
     s = get_settings()
     client = AsyncOpenAI(api_key=s.openai_api_key)
     resp = await client.chat.completions.create(
@@ -48,7 +58,10 @@ async def extract_decision(transcript: str, offers: dict[str, str]) -> dict[str,
             {"role": "user", "content": transcript},
         ],
     )
-    return json.loads(resp.choices[0].message.content or "{}")
+    try:
+        return CallDecision.model_validate_json(resp.choices[0].message.content or "{}")
+    except ValidationError:
+        return CallDecision()  # unreadable model output → take no action
 
 
 async def apply_call_outcome(db: AsyncSession, call_id: uuid.UUID) -> str | None:
@@ -80,12 +93,12 @@ async def apply_call_outcome(db: AsyncSession, call_id: uuid.UUID) -> str | None
     labels: dict[str, str] = (offer or {}).get("labels", {})
     convo = "\n".join(f"{'Agent' if t.speaker == 'agent' else 'Patient'}: {t.text}" for t in turns)
     decision = await extract_decision(convo, labels)
-    await _event(db, call.tenant_id, call.id, "extraction", "Call outcome extracted", decision)
+    await _event(db, call.tenant_id, call.id, "extraction", "Call outcome extracted", decision.model_dump())
 
-    code = decision.get("booked_slot_code")
-    if code and code in codes:
-        return await _book(db, call, uuid.UUID(codes[code]), decision.get("reason"), labels.get(code, code))
-    if decision.get("confirmed_existing"):
+    code = decision.booked_slot_code
+    if code and code in codes:  # only a slot that was actually offered on this call can be booked
+        return await _book(db, call, uuid.UUID(codes[code]), decision.reason, labels.get(code, code))
+    if decision.confirmed_existing:
         appt = (
             await db.execute(
                 text(
