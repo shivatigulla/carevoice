@@ -52,6 +52,10 @@ class Settings(BaseSettings):
     backend_url: str = "http://localhost:8000"
     internal_api_key: str = ""
     cors_origins: str = Field(default="http://localhost:5173,http://127.0.0.1:5173")
+    # Optional regex for extra origins, e.g. Vercel preview URLs: https://.*\.vercel\.app
+    cors_origin_regex: str = ""
+    # Run the background jobs inside the API process (single-service hosting). Local dev uses worker.py.
+    run_scheduler: bool = False
 
     # Seeding
     seed_test_phone: str = ""

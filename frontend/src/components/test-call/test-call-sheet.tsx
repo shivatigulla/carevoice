@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet'
 import { apiFetch, ApiError } from '@/lib/api'
-import { env } from '@/lib/env'
+import { env, isVoiceServiceConfigured } from '@/lib/env'
 import { requireSupabase, supabase } from '@/lib/supabase'
 import { formatDuration } from '@/lib/time'
 import { cn } from '@/lib/utils'
@@ -235,6 +235,7 @@ export function TestCallSheet({ open, onOpenChange }: { open: boolean; onOpenCha
           </div>
         </div>
 
+        {isVoiceServiceConfigured && (
         <div className="flex justify-center border-b bg-card px-6 pt-4">
           <Segmented
             label="Call type"
@@ -253,6 +254,7 @@ export function TestCallSheet({ open, onOpenChange }: { open: boolean; onOpenCha
             ]}
           />
         </div>
+        )}
 
         {mode === 'phone' ? (
           <div className="space-y-3 border-b bg-card px-6 py-5">

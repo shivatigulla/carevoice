@@ -1,5 +1,7 @@
 """CareVoice backend API."""
 
+import logging
+
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
@@ -16,7 +18,16 @@ configure_logging()
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    scheduler = None
+    if get_settings().run_scheduler:
+        from app.jobs.scheduler import build_scheduler
+
+        scheduler = build_scheduler()
+        scheduler.start()
+        logging.getLogger("carevoice").info("scheduler running inside the API (%d jobs)", len(scheduler.get_jobs()))
     yield
+    if scheduler:
+        scheduler.shutdown(wait=False)
     await dispose_engine()
 
 
@@ -25,6 +36,7 @@ app = FastAPI(title="CareVoice API", version="0.1.0", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=get_settings().cors_origin_list,
+    allow_origin_regex=get_settings().cors_origin_regex or None,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

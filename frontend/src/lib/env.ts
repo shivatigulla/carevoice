@@ -6,4 +6,7 @@ export const env = {
   voiceUrl: ((import.meta.env.VITE_VOICE_URL as string | undefined)?.trim() || 'http://localhost:8001').replace(/\/$/, ''),
 }
 
+/** The browser voice test needs the local Pipecat voice service; hidden when VITE_VOICE_URL is not set. */
+export const isVoiceServiceConfigured = Boolean((import.meta.env.VITE_VOICE_URL as string | undefined)?.trim())
+
 export const isSupabaseConfigured = Boolean(env.supabaseUrl && env.supabaseAnonKey)
